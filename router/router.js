@@ -4,6 +4,7 @@ const employee = require('../mssqlOperations/employee/employeeCRUD');
 const employeeFunction = require('../mssqlOperations/employee/employeeFunction');
 const position = require('../mssqlOperations/position/positionCRUD');
 const positionFunction = require('../mssqlOperations/position/positionFunction');
+const account = require('../mssqlOperations/account/accountCRUD');
 
 
 //------------------------------ employee ----------------------------------//
@@ -93,6 +94,19 @@ router.post('/position/delete/:keyid',(req,res,next) =>{
 router.get('/position/get_max_pos',(req,res,next) =>{
     const body = req.body;
     positionFunction.get_max_position(body).then(
+        respone => res.json(respone)
+    ).catch(
+        err => next(err)
+    );
+})
+
+
+//------------------------------ account ----------------------------------//
+
+
+router.post('/account/create',(req,res,next) =>{
+    const body = req.body;
+    account.create_account(body).then(
         respone => res.json(respone)
     ).catch(
         err => next(err)
