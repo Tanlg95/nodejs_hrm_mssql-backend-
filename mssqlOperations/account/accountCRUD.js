@@ -27,7 +27,6 @@ async function create_account(body)
         };
         const atoken = createToken(payloadForToken,1),
               ftoken = createToken(payloadForToken,2);
-              console.log(`check:`+ftoken);
         const table_tblaccount = new  mssql.Table();
         table_tblaccount.columns.add('accountId',mssql.Char(10));   
         table_tblaccount.columns.add('accountName',mssql.NVarChar(150));
