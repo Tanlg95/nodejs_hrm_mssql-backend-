@@ -26,7 +26,6 @@ async function get_max_position(body)
                         AND employeeId LIKE IIF(@employeeId IS NULL, '%', CONCAT('%',@employeeId,'%'))
                     GROUP BY employeeId
                 )sub ON p.employeeId = sub.employeeId
-
             `);
         await trans.commit();
         return pool.recordset
@@ -38,6 +37,7 @@ async function get_max_position(body)
         connection.close();
     }
 }
+
 
 module.exports = {
     get_max_position: get_max_position
