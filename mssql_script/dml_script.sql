@@ -199,29 +199,29 @@ GO
 */
 
 -- get employee's information
-IF OBJECT_ID('employee.ufn_get_employee') IS NOT NULL
-DROP FUNCTION employee.ufn_get_employee
-GO
-CREATE FUNCTION employee.ufn_get_employee(@isactive BIT)
-RETURNS @table TABLE(
-	employeeId CHAR(10),
-	employeeName NVARCHAR(250),
-	employedDate DATE,
-	birthDate DATE,
-	isActive BIT
-)
-AS
-BEGIN
-	INSERT @table (
-		employeeId, employeeName, employedDate, birthDate, isActive
-	)
-	SELECT 
-		employeeId, employeeName, employedDate, birthDate, isActive
-	FROM employee.tblemployee
-	WHERE isActive = @isactive
-	RETURN 
-END
-GO
+-- IF OBJECT_ID('employee.ufn_get_employee') IS NOT NULL
+-- DROP FUNCTION employee.ufn_get_employee
+-- GO
+-- CREATE FUNCTION employee.ufn_get_employee(@isactive BIT)
+-- RETURNS @table TABLE(
+-- 	employeeId CHAR(10),
+-- 	employeeName NVARCHAR(250),
+-- 	employedDate DATE,
+-- 	birthDate DATE,
+-- 	isActive BIT
+-- )
+-- AS
+-- BEGIN
+-- 	INSERT @table (
+-- 		employeeId, employeeName, employedDate, birthDate, isActive
+-- 	)
+-- 	SELECT 
+-- 		employeeId, employeeName, employedDate, birthDate, isActive
+-- 	FROM employee.tblemployee
+-- 	WHERE isActive = @isactive
+-- 	RETURN 
+-- END
+-- GO
 -- how to use function employee.ufn_get_employee
 /*
 	DECLARE @isActive BIT = 0
