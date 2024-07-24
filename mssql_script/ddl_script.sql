@@ -116,6 +116,12 @@ CREATE TABLE employee.tblaccount(
 ) ON[FG_hrm]
 GO
 
+ALTER TABLE employee.tblaccount ALTER COLUMN accountId NVARCHAR(10) NOT NULL
+GO
+
+ALTER TABLE employee.tblaccount ADD CONSTRAINT cs_pk_tblaccount PRIMARY KEY(accountId)
+GO
+
 -- CREATE TABLE employee's account TYPE
 IF EXISTS (SELECT * FROM sys.types WHERE name = 'utype_tblaccount')
 DROP TYPE employee.utype_tblaccount
