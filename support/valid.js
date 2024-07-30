@@ -18,6 +18,12 @@ function validEmail(email)
 
 function validPassword(password)
 {
+    /*
+        1.at least one uppercase letter
+        2.at least one number
+        3.at least one lowercase letters
+        4.at least one on the list [@!#$%&^]
+    */
     const regPassword = /(?=.*[@!#$%&^])(?=.*[A-Z])(?=.*[0-9])(?=.*[a-z])(?!.*[^a-zA-Z0-9@!#$%&^])/g;
     try {
         if(!(regPassword.test(password))) throw status.errorStatus(9);
