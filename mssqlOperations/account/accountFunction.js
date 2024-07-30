@@ -1,5 +1,8 @@
 const mssql = require('mssql');
 const mssql_config = require('../../mssqlConfigure/mssqlConnect').condfig;
+const statusClass = require('../../support/status');
+const valid = require('../../support/valid');
+const status = new statusClass();
 const bcrypt = require('bcrypt');
 
 // login account
@@ -20,12 +23,12 @@ async function login(body)
         // compare passwords
         const check_match_password = bcrypt.compareSync(body.pwd, encrypt_password);
         
-        if(!check_match_password) throw new Error('incorrect password !!!');
+        if(!check_match_password) throw status.errorStatus(2);
         await trans.commit();
         // return employee's information
         return {
-            statusId: 1,
-            statusName: "logged in successfully!!!",
+            statusId: status.operationStatus(104),
+            statusName: status.operationStatus(102),
             atoken: get_password.recordset[0].atoken
         };
     } catch (error) {
@@ -56,9 +59,9 @@ async function changePassword(body)
         console.log(`check password: ${encrypt_password}`);
         // compare passwords
         const check_match_password = bcrypt.compareSync(body.old_password, encrypt_password);
-        if(!check_match_password) throw new Error('incorrect password!!!');
+        if(!check_match_password) throw status.errorStatus(2);
         // create a new password
-        const new_encrypt_password = bcrypt.hashSync(body.new_password,  bcrypt.genSaltSync(10));    
+        const new_encrypt_password = bcrypt.hashSync(valid.validPassword(body.new_password),  bcrypt.genSaltSync(10));    
         // update password
         const request2 = new mssql.Request(trans);
         const pool = await request2.
@@ -66,7 +69,10 @@ async function changePassword(body)
         input('new_password', mssql.VarChar(1000), new_encrypt_password).
         execute('employee.usp_change_account_password');
         await trans.commit();
-        return pool.recordset;
+        return {
+            statusId: status.operationStatus(104) ,
+            totalRowModified: pool.rowsAffected[0]
+        }; 
     } catch (error) {
         await trans.rollback();
         throw error;

@@ -1,5 +1,7 @@
 const mssql = require('mssql');
 const mssql_config = require('../../mssqlConfigure/mssqlConnect').condfig;
+const statusClass = require('../../support/status');
+const status = new statusClass();
 
 // get employee's position
 
@@ -36,6 +38,10 @@ async function insert_position_employee(body)
     const trans = new mssql.Transaction(connection);
     try {
         await trans.begin();
+        // check array body
+        if(!(body.body instanceof Array)) throw status.errorStatus(1);
+        const employee_input = body.body;
+
         const request = new mssql.Request(trans);
         const tbl_tblemppos = new mssql.Table();
         tbl_tblemppos.columns.add('employeeId', mssql.Char(10));
@@ -43,9 +49,7 @@ async function insert_position_employee(body)
         tbl_tblemppos.columns.add('posId', mssql.Char(10));
         tbl_tblemppos.columns.add('note', mssql.NVarChar(150));
 
-        // check array body
-        if(!(body.body instanceof Array)) throw new Error('body input must be an array!!')
-        const employee_input = body.body;
+        
         for(let ele of employee_input)
         {
             tbl_tblemppos.rows.add(ele.employeeId, ele.datechange, ele.posId, ele.note);
@@ -54,7 +58,10 @@ async function insert_position_employee(body)
         const pool = await request.input('tblemppos', tbl_tblemppos)
         .execute('employee.usp_insert_position');
         await trans.commit();
-        return pool.output;
+        return {
+            statusId: status.operationStatus(104) ,
+            totalRowInserted: pool.rowsAffected[0]
+        }; 
     } catch (error) {
         trans.rollback();
         throw error;
@@ -74,16 +81,30 @@ async function update_position_employee(body)
     const trans = new mssql.Transaction(connection);
     try {
         await trans.begin();
+        // check array body
+        if(!(body.body instanceof Array)) throw status.errorStatus(1);
+        const employee_input = body.body;
+        const tblEmppos = new mssql.Table();
+
+        tblEmppos.columns.add('datechange', mssql.Date);
+        tblEmppos.columns.add('posId', mssql.Char(10));
+        tblEmppos.columns.add('note', mssql.NVarChar(150));
+        tblEmppos.columns.add('keyid', mssql.Int);
+
+        for(let ele of employee_input)
+        {
+            tblEmppos.rows.add(new Date(ele.datechange).toISOString().split('T')[0], ele.posId, ele.note, ele.keyid);
+        }
+        
         const request = new mssql.Request(trans);
         const pool = await request.
-        input('employeeId', mssql.Char(10), body.employeeId).
-        input('datechange', mssql.Date, body.datechange).
-        input('posId', mssql.Char(10), body.posId).
-        input('note', mssql.NVarChar(150), body.note).
-        input('keyid', mssql.Int,  body.keyid).
+        input('tblemppos', tblEmppos).
         execute('employee.usp_update_position');
         await trans.commit();
-        return pool.recordset;
+        return {
+            statusId: status.operationStatus(104) ,
+            totalRowModified: pool.rowsAffected[0]
+        }; 
     } catch (error) {
         await trans.rollback();
         throw error;
@@ -95,19 +116,33 @@ async function update_position_employee(body)
 
 // delete employee's position 
 
-async function delete_position_employee(keyid)
+async function delete_position_employee(body)
 {
     const connection = new mssql.ConnectionPool(mssql_config);
     await connection.connect();
     const trans = new mssql.Transaction(connection);
     try {
         await trans.begin();
+        // check array body
+        if(!(body.body instanceof Array)) throw status.errorStatus(1);
+        const employee_input = body.body;
+        const tblDelete = new mssql.Table();
+        tblDelete.columns.add('keyid', mssql.Int);
+
+        for(let ele of employee_input)
+        {
+            tblDelete.rows.add(ele.keyid);
+        }
+
         const request = new mssql.Request(trans);
         const pool = await request.
-        input('keyid', mssql.Char(10), keyid).
+        input('tblemppos', tblDelete).
         execute('employee.usp_delete_position');
         await trans.commit();
-        return pool.output;
+        return {
+            statusId: status.operationStatus(104) ,
+            totalRowDeleted: pool.rowsAffected[0]
+        }; 
     } catch (error) {
         await trans.rollback();
     } finally

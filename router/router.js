@@ -23,8 +23,7 @@ router.get('/employee',authToken,(req,res,next) =>{
 
 /* create employee information */
 router.post('/employee/insert',(req,res,next) =>{
-    const body = req.body;
-    employee.insert_employee_info(body).then(
+    employee.insert_employee_info(req).then(
         respone => res.json(respone)
     ).catch(
         err => next(err)
@@ -33,8 +32,7 @@ router.post('/employee/insert',(req,res,next) =>{
 
 /* update employee information */
 router.post('/employee/udpate',(req,res,next) =>{
-    const body = req.body;
-    employee.update_employee_info(body).then(
+    employee.update_employee_info(req).then(
         respone => res.json(respone)
     ).catch(
         err => next(err)
@@ -42,9 +40,8 @@ router.post('/employee/udpate',(req,res,next) =>{
 });
 
 /* delete employee information */
-router.post('/employee/delete/:empid',(req,res,next) =>{
-    const empid = req.params.empid;
-    employee.delete_employee_info(empid).then(
+router.post('/employee/delete',(req,res,next) =>{
+    employee.delete_employee_info(req).then(
         respone => res.json(respone)
     ).catch(
         err => next(err)
@@ -85,8 +82,7 @@ router.post('/position/insert',(req,res,next) =>{
 
 /* update employee position */
 router.post('/position/update',(req,res,next) =>{
-    const body = req.body;
-    position.update_position_employee(body).then(
+    position.update_position_employee(req).then(
         respone => res.json(respone)
     ).catch(
         err => next(err)
@@ -94,9 +90,8 @@ router.post('/position/update',(req,res,next) =>{
 })
 
 /* delete employee position */
-router.post('/position/delete/:keyid',(req,res,next) =>{
-    const keyid = req.params.keyid;
-    position.delete_position_employee(keyid).then(
+router.post('/position/delete',(req,res,next) =>{
+    position.delete_position_employee(req).then(
         respone => res.json(respone)
     ).catch(
         err => next(err)
@@ -118,8 +113,7 @@ router.get('/position/get_max_pos',authToken,(req,res,next) =>{
 
 /* create account */
 router.post('/account/create',(req,res,next) =>{
-    const body = req.body;
-    account.create_account(body).then(
+    account.create_account(req).then(
         respone => res.json(respone)
     ).catch(
         err => next(err)
@@ -128,8 +122,7 @@ router.post('/account/create',(req,res,next) =>{
 
 /* update account */
 router.post('/account/update',(req,res,next) =>{
-    const body = req.body;
-    account.update_account(body).then(
+    account.update_account(req).then(
         respone => res.json(respone)
     ).catch(
         err => next(err)
@@ -137,9 +130,8 @@ router.post('/account/update',(req,res,next) =>{
 })
 
 /* delete account */
-router.post('/account/delete/:keyid',(req,res,next) =>{
-    const keyid = req.params.keyid;
-    account.delete_account(keyid).then(
+router.post('/account/delete',(req,res,next) =>{
+    account.delete_account(req).then(
         respone => res.json(respone)
     ).catch(
         err => next(err)

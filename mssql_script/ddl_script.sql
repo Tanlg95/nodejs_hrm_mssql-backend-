@@ -54,7 +54,8 @@ CREATE TABLE employee.tblemployee(
 	employedDate DATE,
 	birthDate DATE,
 	isActive BIT,
-	keyid UNIQUEIDENTIFIER DEFAULT (NEWSEQUENTIALID()),
+	-- keyid UNIQUEIDENTIFIER DEFAULT (NEWSEQUENTIALID()),
+	keyid INT IDENTITY(1,1),
 	CONSTRAINT pk_tblemployee PRIMARY KEY(employeeId)
 ) ON [FG_hrm]
 GO
@@ -85,6 +86,34 @@ GO
 ALTER TABLE employee.tblref_position ADD keyid INT IDENTITY(1,1)
 GO
 
+
+
+-- CREATE TABLE employee TYPE
+IF EXISTS (SELECT 1 FROM sys.types WHERE name = 'utype_tblemployee')
+DROP TYPE employee.utype_tblemployee
+GO
+CREATE TYPE employee.utype_tblemployee AS TABLE(
+	employeeId CHAR(10),
+	employeeName NVARCHAR(250),
+	employedDate DATE,
+	birthDate DATE,
+	isActive BIT
+)
+GO
+
+-- CREATE TABLE employee TYPE => update
+IF EXISTS (SELECT 1 FROM sys.types WHERE name = 'utype_tblemployee_update')
+DROP TYPE employee.utype_tblemployee_update
+GO
+CREATE TYPE employee.utype_tblemployee_update AS TABLE(
+	employeeName NVARCHAR(250),
+	employedDate DATE,
+	birthDate DATE,
+	isActive BIT,
+	keyid INT
+)
+GO
+
 -- CREATE TABLE employee's position TYPE
 IF EXISTS (SELECT * FROM sys.types WHERE name = 'utype_tblemppos')
 DROP TYPE employee.utype_tblemppos
@@ -94,6 +123,18 @@ CREATE TYPE employee.utype_tblemppos AS TABLE(
 	datechange DATE,
 	posId CHAR(10),
 	note NVARCHAR(150)
+)
+GO
+
+-- CREATE TABLE employee's position TYPE => update
+IF EXISTS (SELECT * FROM sys.types WHERE name = 'utype_tblemppos_update')
+DROP TYPE employee.utype_tblemppos_update
+GO
+CREATE TYPE employee.utype_tblemppos_update AS TABLE(
+	datechange DATE,
+	posId CHAR(10),
+	note NVARCHAR(150),
+	keyid INT
 )
 GO
 
@@ -122,7 +163,7 @@ GO
 ALTER TABLE employee.tblaccount ADD CONSTRAINT cs_pk_tblaccount PRIMARY KEY(accountId)
 GO
 
--- CREATE TABLE employee's account TYPE
+-- CREATE TABLE employee's account TYPE => insert
 IF EXISTS (SELECT * FROM sys.types WHERE name = 'utype_tblaccount')
 DROP TYPE employee.utype_tblaccount
 GO
@@ -134,5 +175,26 @@ CREATE TYPE employee.utype_tblaccount AS TABLE(
 	atoken VARCHAR(1500),
 	ftoken VARCHAR(1500),
 	note NVARCHAR(250)
+)
+GO
+
+-- CREATE TABLE employee's account TYPE => update
+IF EXISTS (SELECT * FROM sys.types WHERE name = 'utype_tblaccount_update')
+DROP TYPE employee.utype_tblaccount_update
+GO
+CREATE TYPE employee.utype_tblaccount_update AS TABLE(
+	accountName NVARCHAR(150),
+	email VARCHAR(150),
+	note NVARCHAR(250),
+	keyid INT
+)
+GO
+
+-- CREATE DELETE TABLE TYPE
+IF EXISTS (SELECT 1 FROM SYS.types WHERE name = 'utype_delete_multi_rows')
+DROP TYPE employee.utype_delete_multi_rows
+GO
+CREATE TYPE employee.utype_delete_multi_rows AS TABLE(
+	keyid INT
 )
 GO

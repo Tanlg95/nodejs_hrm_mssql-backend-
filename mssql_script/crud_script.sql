@@ -20,16 +20,13 @@ IF OBJECT_ID('employee.usp_insert_employee') IS NOT NULL
 DROP PROCEDURE employee.usp_insert_employee
 GO
 CREATE PROCEDURE employee.usp_insert_employee(
-		@employeeId CHAR(10),
-		@employeeName NVARCHAR(150),
-		@employedDate DATE,
-		@birthDate DATE,
-		@isActive BIT
+		@tblemployee employee.utype_tblemployee READONLY
 )
 AS
 BEGIN
 	INSERT employee.tblemployee(employeeId, employeeName, employedDate, birthDate, isActive)
-	VALUES(@employeeId, @employeeName, @employedDate, @birthDate, @isActive)
+	SELECT employeeId, employeeName, employedDate, birthDate, isActive
+	FROM @tblemployee
 END
 GO
 
@@ -40,21 +37,17 @@ IF OBJECT_ID('employee.usp_update_employee') IS NOT NULL
 DROP PROCEDURE employee.usp_update_employee
 GO
 CREATE PROCEDURE employee.usp_update_employee(
-		@employeeId CHAR(10),
-		@employeeName NVARCHAR(150),
-		@employedDate DATE,
-		@birthDate DATE,
-		@isActive BIT
+		@tblemployee employee.utype_tblemployee_update READONLY
 )
 AS
 BEGIN
-	UPDATE employee.tblemployee 
-	SET employeeName = @employeeName,
-		employedDate = @employedDate,
-		birthDate = @birthDate,
-		isActive = @isActive
-	WHERE
-		employeeId = @employeeId
+	UPDATE E
+	SET employeeName = ISNULL(E1.employeeName, E.employeeName),
+		employedDate = ISNULL(E1.employedDate, E.employedDate),
+		birthDate = ISNULL(E1.birthDate, E.birthDate),
+		isActive = ISNULL(E1.isActive, E.isActive)
+	FROM employee.tblemployee E
+	INNER JOIN	@tblemployee E1 ON E.keyid = E1.keyid
 END
 GO
 
@@ -62,10 +55,13 @@ GO
 IF OBJECT_ID('employee.usp_delete_employee') IS NOT NULL
 DROP PROCEDURE employee.usp_delete_employee
 GO
-CREATE PROCEDURE employee.usp_delete_employee(@employeeId CHAR(10))
+CREATE PROCEDURE employee.usp_delete_employee(
+	@tblemployee employee.utype_delete_multi_rows READONLY
+)
 AS
 BEGIN
-	DELETE FROM employee.tblemployee WHERE employeeId = @employeeId
+	DELETE E FROM employee.tblemployee E
+	INNER JOIN @tblemployee E1 ON E.keyid = E1.keyid
 
 END
 GO
@@ -104,8 +100,9 @@ GO
 -- SELECT * FROM employee.ufn_get_position(CURRENT_TIMESTAMP + 100,null)
 
 -- insert employee's position
+
 IF OBJECT_ID('employee.usp_insert_position') IS NOT NULL
-DROP PROCEDURE employee.usp_insert_position 
+DROP PROCEDURE employee.usp_insert_position
 GO
 CREATE PROCEDURE employee.usp_insert_position
 	@tblemppos employee.utype_tblemppos READONLY
@@ -127,21 +124,19 @@ GO
 
 -- update employee's position
 IF OBJECT_ID('employee.usp_update_position') IS NOT NULL
-DROP PROCEDURE employee.usp_update_position 
+DROP PROCEDURE employee.usp_update_position
 GO
 CREATE PROCEDURE employee.usp_update_position
-	@employeeId CHAR(10),
-	@datechange DATE,
-	@posId CHAR(10),
-	@note NVARCHAR(150),
-	@keyid INT
+	@tblemppos employee.utype_tblemppos_update READONLY
 AS
 BEGIN
-	UPDATE employee.tblemppos 
-	SET datechange = @datechange,
-		posId = @posId,
-		note = @note
-	WHERE keyid = @keyid
+	UPDATE P
+	SET datechange = ISNULL(P1.datechange, P.datechange),
+		posId = ISNULL(P1.posId, P.posId),
+		note = P1.note
+	FROM employee.tblemppos P
+	INNER JOIN
+		@tblemppos P1 ON P.keyid = P1.keyid
 END
 GO
 
@@ -149,10 +144,13 @@ GO
 IF OBJECT_ID('employee.usp_delete_position') IS NOT NULL
 DROP PROCEDURE employee.usp_delete_position
 GO
-CREATE PROCEDURE employee.usp_delete_position @keyid CHAR(10)
+CREATE PROCEDURE employee.usp_delete_position 
+	@tblemppos employee.utype_delete_multi_rows READONLY
 AS
 BEGIN
-	DELETE FROM employee.tblemppos WHERE keyid = @keyid
+	DELETE P FROM employee.tblemppos P
+	INNER JOIN
+		@tblemppos P1 ON P.keyid = P1.keyid
 END
 GO
 
@@ -221,18 +219,15 @@ IF OBJECT_ID('employee.usp_update_account') IS NOT NULL
 DROP PROCEDURE employee.usp_update_account
 GO
 CREATE PROCEDURE employee.usp_update_account
-	--@accountId CHAR(10),
-	@accountName VARCHAR(150),
-	@email VARCHAR(150),
-	@note NVARCHAR(250),
-	@keyid INT
+	@tblaccount employee.utype_tblaccount_update READONLY
 AS
 BEGIN
-	UPDATE employee.tblaccount
-	SET accountName = @accountName,
-		email = @email,
-		note = @note
-	WHERE keyid = @keyid
+	UPDATE A
+	SET accountName = ISNULL(A1.accountName, A.accountName),
+		email = ISNULL(A1.email, A.email),
+		note = A1.note
+	FROM employee.tblaccount A
+	INNER JOIN @tblaccount A1 ON A1.keyid = A.keyid
 END
 GO
 
@@ -241,10 +236,11 @@ IF OBJECT_ID('employee.usp_delete_account') IS NOT NULL
 DROP PROCEDURE employee.usp_delete_account
 GO
 CREATE PROCEDURE employee.usp_delete_account
-	@keyid INT 
+	@tblaccount employee.utype_delete_multi_rows READONLY 
 AS
 BEGIN
-	DELETE FROM employee.tblaccount WHERE keyid = @keyid
+	DELETE A FROM employee.tblaccount A 
+	INNER JOIN @tblaccount A1 ON A.keyid = A1.keyid
 	
 END
 GO

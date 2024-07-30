@@ -1,5 +1,7 @@
 const mssql = require('mssql');
 const mssql_config = require('../../mssqlConfigure/mssqlConnect').condfig;
+const statusClass = require('../../support/status');
+const status = new statusClass();
 const moment = require('moment');
 
 
@@ -36,17 +38,36 @@ async function insert_employee_info(body)
     const trans = new mssql.Transaction(connection);
     try {
         await trans.begin();
+         // check array body
+        if(!(body.body instanceof Array)) throw status.errorStatus(1);
+        const employee_input = body.body;
+        const tblemployee = new mssql.Table();
+        tblemployee.columns.add('employeeId', mssql.Char(10));
+        tblemployee.columns.add('employeeName', mssql.NVarChar(150));
+        tblemployee.columns.add('employedDate', mssql.Date);
+        tblemployee.columns.add('birthDate', mssql.Date);
+        tblemployee.columns.add('isActive', mssql.Bit);
+
+        for(let ele of employee_input)
+        {
+            tblemployee.rows.add(
+                String(ele.employeeId), 
+                String(ele.employeeName),
+                new Date(ele.employedDate).toISOString().split('T')[0],
+                new Date(ele.birthDate).toISOString().split('T')[0],
+                Boolean(ele.isActive)
+            );
+        }
         const request = new mssql.Request(trans);
         const pool = await request.
-        input('employeeId', mssql.Char(10), String(body.employeeId)).
-        input('employeeName', mssql.NVarChar(150), String(body.employeeName)).
-        input('employedDate', mssql.Date, body.employedDate).
-        input('birthDate', mssql.Date, body.birthDate).
-        input('isActive', mssql.Bit, Boolean(body.isActive)).
+        input('tblemployee', tblemployee).
         execute('employee.usp_insert_employee');
         await trans.commit();
 
-        return pool.recordset;
+        return {
+            statusId: status.operationStatus(104) ,
+            totalRowInserted: pool.rowsAffected[0]
+        };
     } catch (error) {
         await trans.rollback();
         throw error;
@@ -64,16 +85,38 @@ async function update_employee_info(body)
     const trans = new mssql.Transaction(connection);
     try {
         await trans.begin();
+
+        // check array body
+        if(!(body.body instanceof Array)) throw status.errorStatus(1);
+        const employee_input = body.body;
+        const tblemployee = new mssql.Table();
+
+        tblemployee.columns.add('employeeName', mssql.NVarChar(150));
+        tblemployee.columns.add('employedDate', mssql.Date);
+        tblemployee.columns.add('birthDate', mssql.Date);
+        tblemployee.columns.add('isActive', mssql.Bit);
+        tblemployee.columns.add('keyid', mssql.Int);
+
+        for(let ele of employee_input)
+        {
+            tblemployee.rows.add(
+                String(ele.employeeName),
+                new Date(ele.employedDate).toISOString().split('T')[0],
+                new Date(ele.birthDate).toISOString().split('T')[0],
+                Boolean(ele.isActive),
+                Number(ele.keyid)
+            );
+        }
+
         const request = new mssql.Request(trans);
         const pool = await request.
-        input('employeeId', mssql.Char(10), String(body.employeeId)).
-        input('employeeName', mssql.NVarChar(150), String(body.employeeName)).
-        input('employedDate', mssql.Date, body.employedDate).
-        input('birthDate', mssql.Date, body.birthDate).
-        input('isActive', mssql.Bit, Boolean(body.isActive)).
+        input('tblemployee', tblemployee).
         execute('employee.usp_update_employee');
         await trans.commit();
-        return pool.output;
+        return {
+            statusId: status.operationStatus(104) ,
+            totalRowModified: pool.rowsAffected[0]
+        };
     } catch (error) {
         await trans.rollback();
         throw error;
@@ -85,22 +128,37 @@ async function update_employee_info(body)
 
 // delete employee information
 
-async function delete_employee_info(empid)
+async function delete_employee_info(body)
 {
     const connection = new mssql.ConnectionPool(mssql_config);
-    
+    await connection.connect();
+    const trans = new mssql.Transaction(connection);
     try {
-        await connection.connect();
-        const trans = new mssql.Transaction(connection);
         await trans.begin();
+
+        // check array body
+        if(!(body.body instanceof Array)) throw status.errorStatus(1);
+        const employee_input = body.body;
+        const tblemployee = new mssql.Table();
+
+        tblemployee.columns.add('keyid', mssql.Int);
+
+        for(let ele of employee_input)
+        {
+            tblemployee.rows.add(String(ele.keyid));
+        }
+
         const request = new mssql.Request(trans);
         const pool = await request.input(
-            'employeeId', mssql.Char(10), empid
+           'tblemployee', tblemployee
         ).execute('employee.usp_delete_employee');
 
         await trans.commit();
 
-        return pool.output;  
+        return {
+            statusId: status.operationStatus(104) ,
+            totalRowDeleted: pool.rowsAffected[0]
+        }; 
 
     } catch (error) {
         await trans.rollback();
