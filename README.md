@@ -1,6 +1,6 @@
 📜This is my small human resource management personal project (backend API).
 
-🖥Dev with Mssql + nodejs ( express, mysql2, bcryppt, jsonwebtoken, dotenv, cors, body-parser, nodemon )
+🖥Dev with Mssql + nodejs ( express, mssql, bcryppt, jsonwebtoken, dotenv, cors, body-parser, nodemon )
 
 🕹Function:
 	
