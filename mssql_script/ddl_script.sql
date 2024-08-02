@@ -88,6 +88,71 @@ GO
 
 
 
+-- create department category 
+
+IF OBJECT_ID('employee.tblref_department') IS NOT NULL
+DROP TABLE employee.tblref_department
+GO
+CREATE TABLE employee.tblref_department(
+	depId CHAR(10),
+	depName NVARCHAR(150),
+	depTypeId CHAR(10) NOT NULL CHECK( depTypeId IN ('S','L','G','T','P')),
+	depParent CHAR(10),
+	depOrderNo INT,
+	CONSTRAINT cs_pk_tblref_department PRIMARY KEY CLUSTERED(
+		depId ASC
+	),
+	CONSTRAINT cs_fk_tblref_department FOREIGN KEY(depParent) REFERENCES employee.tblref_department(depId)
+) ON [FG_hrm]
+GO
+
+-- create departments of employees
+
+IF OBJECT_ID('employee.tblempdep') IS NOT NULL
+DROP TABLE employee.tblempdep
+GO
+CREATE TABLE employee.tblempdep(
+	employeeId CHAR(10),
+	datechange DATE,
+	depId CHAR(10),
+	note NVARCHAR(150),
+	keyid INT IDENTITY(1,1),
+	CONSTRAINT cs_pk_tblempdep PRIMARY KEY CLUSTERED (
+		employeeId, datechange DESC, depId
+	),
+	CONSTRAINT cs_fk_tblempdep1 FOREIGN KEY(employeeId) REFERENCES employee.tblemployee(employeeId),
+	CONSTRAINT cs_fk_tblempdep2 FOREIGN KEY(depId) REFERENCES employee.tblref_department(depId)
+) ON [FG_hrm]
+GO
+
+-- create departments of employees type => for insert
+
+IF EXISTS (SELECT 1 FROM sys.types WHERE [name] = 'utype_tblempdep') 
+DROP TYPE employee.utype_tblempdep
+GO
+CREATE TYPE employee.utype_tblempdep AS TABLE(
+	employeeId CHAR(10),
+	datechange DATE,
+	depId CHAR(10),
+	note NVARCHAR(150)
+)
+GO
+
+-- create departments of employees type => for update
+
+IF EXISTS (SELECT 1 FROM sys.types WHERE [name] = 'utype_tblempdep_update') 
+DROP TYPE employee.utype_tblempdep_update
+GO
+CREATE TYPE employee.utype_tblempdep_update AS TABLE(
+	datechange DATE,
+	depId CHAR(10),
+	note NVARCHAR(150),
+	keyid INT
+)
+GO
+
+
+
 -- CREATE TABLE employee TYPE
 IF EXISTS (SELECT 1 FROM sys.types WHERE name = 'utype_tblemployee')
 DROP TYPE employee.utype_tblemployee

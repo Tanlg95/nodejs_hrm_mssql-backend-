@@ -14,6 +14,26 @@ VALUES('NV',N'nhân viên'),
 ('BV',N'bảo vệ');
 GO
 
+DELETE FROM employee.tblref_department
+GO
+INSERT INTO employee.tblref_department(depId,depName, depTypeId, depParent,depOrderNo)
+VALUES
+('SX',N'sản xuất', 'S', NULL, 0),
+('VP',N'văn phòng', 'S', NULL, 1),
+('SXTD',N'sản xuất tiêu dùng', 'L', 'SX', 2),
+('SXXK',N'sản xuất xuất khẩu', 'L', 'SX', 3),
+('TCKT',N'tài chính-kế toán', 'L', 'VP', 4),
+('TD',N'tuyển dụng', 'L', 'VP', 5),
+('KT',N'kỹ thuật', 'L', 'VP', 6),
+('NS',N'nhân sự', 'L', 'VP', 7),
+('KTM',N'kỹ thuật phần mềm', 'G', 'KT', 8),
+('KTC',N'kỹ thuật phần cứng', 'G', 'KT', 9),
+('KTM1',N'lập trình nhúng', 'T', 'KTM', 10),
+('KTM2',N'lập trình web', 'T', 'KTM', 11),
+('KTM11',N'lập trình nhúng TT', 'P', 'KTM1', 12),
+('KTM22',N'lập trình nhúng TK', 'P', 'KTM1', 13)
+GO
+
 ------------------------------ employee --------------------------
 
 -- create procedure auto generate employee information
@@ -318,4 +338,232 @@ GO
 /*
 	DECLARE @total_pos INT = 5000;
 	EXEC employee.usp_gen_pos_ad @total_pos
+*/
+
+------------------------------------ department ------------------------------------------
+
+
+
+-- get department structure
+
+IF OBJECT_ID('employee.ufn_get_dep_struct') IS NOT NULL
+DROP FUNCTION employee.ufn_get_dep_struct
+GO
+CREATE FUNCTION employee.ufn_get_dep_struct(
+	@depId CHAR(10)
+)
+RETURNS @tblref_dep TABLE(
+	sectionId CHAR(10),
+	lineId CHAR(10),
+	groupId CHAR(10),
+	teamId CHAR(10),
+	partId CHAR(10)
+)
+AS
+BEGIN
+	
+	-- check first level dep
+	DECLARE @tbllevel TABLE(
+		depTypeId CHAR(10),
+		orderNo INT IDENTITY(1,1),
+		depId CHAR(10)
+	)
+	INSERT @tbllevel (depTypeId) 
+	VALUES('S'),('L'),('G'),('T'),('P')
+
+
+	DECLARE @result TABLE(
+		depId CHAR(10),
+		orderNo INT
+	)
+
+	DECLARE @level_number INT = (SELECT orderNo FROM @tbllevel WHERE depTypeId = (SELECT depTypeId FROM employee.tblref_department WHERE depId = @depId))
+	DECLARE @begin INT = 1, @end INT = @level_number
+	DECLARE @depId_running CHAR(10) = @depId
+	INSERT @result(depId,orderNo) VALUES(@depId,@end)
+	WHILE  @end > 0
+	BEGIN
+		DECLARE @depId_curr CHAR(10) = (SELECT depParent FROM employee.tblref_department WHERE depId = @depId_running)
+		INSERT @result(depId, orderNo) VALUES(@depId_curr,@end - 1)
+		SET @depId_running = @depId_curr
+		SET @end -= 1;
+	END
+
+	DECLARE @tbl TABLE( depId CHAR(10), orderNo INT)
+	INSERT @tbl
+	SELECT B.depId, A.orderNo FROM @tbllevel A
+	LEFT JOIN 
+		( SELECT TOP 1000 * FROM @result WHERE depId IS NOT NULL ORDER BY orderNo) B ON A.orderNo = B.orderNo
+
+	INSERT @tblref_dep VALUES(NULL,NULL,NULL,NULL,NULL)
+	UPDATE @tblref_dep 
+	SET sectionId = ( SELECT depId FROM @tbl WHERE orderNo = 1 ),
+	lineId = ( SELECT depId FROM @tbl WHERE orderNo = 2 ),
+	groupId = ( SELECT depId FROM @tbl WHERE orderNo = 3 ),
+	teamId = ( SELECT depId FROM @tbl WHERE orderNo = 4 ),
+	partId = ( SELECT depId FROM @tbl WHERE orderNo = 5 )
+
+	RETURN
+END
+GO
+/* how to use
+	DECLARE @depId CHAR(10) = 'KT'
+	SELECT  * FROM employee.ufn_get_dep_struct (@depId)
+*/
+
+
+IF OBJECT_ID('employee.ufn_get_dep_struct_max_depth') IS NOT NULL
+DROP FUNCTION employee.ufn_get_dep_struct_max_depth
+GO
+CREATE FUNCTION employee.ufn_get_dep_struct_max_depth()
+RETURNS @tbl_depid TABLE(
+	depId CHAR(10)
+)
+AS
+BEGIN
+	DECLARE @tblref_dep TABLE(
+		depId CHAR(10),
+		depId1 CHAR(10),
+		depId2 CHAR(10),
+		depId3 CHAR(10),
+		depId4 CHAR(10),
+		keyid INT IDENTITY(1,1)
+		)
+		INSERT @tblref_dep
+		SELECT
+			D.depId,
+			D1.depId depId1,
+			D2.depId depId2,
+			D3.depId depId3,
+			D4.depId depId4
+		FROM
+			employee.tblref_department D
+		LEFT JOIN 
+			employee.tblref_department D1 ON D1.depParent = D.depId
+		LEFT JOIN 
+			employee.tblref_department D2 ON D2.depParent = D1.depId
+		LEFT JOIN 
+			employee.tblref_department D3 ON D3.depParent = D2.depId
+		LEFT JOIN 
+			employee.tblref_department D4 ON D4.depParent = D3.depId
+		ORDER BY D.depId
+
+		DECLARE @tblcontains TABLE(
+			sectionId CHAR(10),
+			lineId CHAR(10),
+			groupId CHAR(10),
+			teamId CHAR(10),
+			partId CHAR(10),
+			keyid INT IDENTITY(1,1)
+		)
+		DECLARE @begin INT = 1;
+		WHILE @begin < 6
+		BEGIN
+			DECLARE @tblcheck TABLE(depId VARCHAR(10))
+			INSERT @tblcheck
+			SELECT depId FROM(
+							SELECT sectionId depId FROM @tblcontains  UNION ALL
+							SELECT lineId FROM @tblcontains  UNION ALL
+							SELECT groupId FROM @tblcontains  UNION ALL
+							SELECT teamId FROM @tblcontains  UNION ALL
+							SELECT partId FROM @tblcontains
+							)sub WHERE depId IS NOT NULL
+			IF(@begin = 1)
+			BEGIN
+			INSERT INTO @tblcontains (sectionId, lineId, groupId, teamId, partId)
+			SELECT depId, depId1, depId2, depId3, depId4 FROM @tblref_dep 
+			WHERE depId4 IS NOT NULL --AND depId3 IS NOT NULL AND depId2 IS NOT NULL AND depId1 IS NOT NULL AND depId IS NOT NULL 
+			END
+			IF(@begin = 2)
+			BEGIN
+			INSERT INTO @tblcontains (sectionId, lineId, groupId, teamId, partId)
+			SELECT depId, depId1, depId2, depId3, depId4 FROM @tblref_dep D 
+			WHERE depId3 IS NOT NULL --AND depId2 IS NOT NULL AND depId1 IS NOT NULL AND depId IS NOT NULL 
+			AND depId3 NOT IN (
+					SELECT depId FROM @tblcheck
+				)
+			END
+			IF(@begin = 3)
+			BEGIN
+			INSERT INTO @tblcontains (sectionId, lineId, groupId, teamId, partId)
+			SELECT depId, depId1, depId2, depId3, depId4 FROM @tblref_dep D 
+			WHERE depId2 IS NOT NULL --AND depId1 IS NOT NULL AND depId IS NOT NULL 
+			AND depId2 NOT IN (
+					SELECT depId FROM @tblcheck
+				)
+			END
+			IF(@begin = 4)
+			BEGIN
+			INSERT INTO @tblcontains (sectionId, lineId, groupId, teamId, partId)
+			SELECT depId, depId1, depId2, depId3, depId4 FROM @tblref_dep D
+			WHERE depId1 IS NOT NULL --AND depId IS NOT NULL 
+			AND depId1 NOT IN (
+					SELECT depId FROM @tblcheck
+				)
+			END
+			IF(@begin = 5)
+			BEGIN
+			INSERT INTO @tblcontains (sectionId, lineId, groupId, teamId, partId)
+			SELECT depId, depId1, depId2, depId3, depId4 FROM @tblref_dep D 
+			WHERE depId IS NOT NULL 
+			AND depId NOT IN (
+					SELECT depId FROM @tblcheck
+				)
+			END
+
+			SET @begin += 1;
+		END
+
+		INSERT @tbl_depid (depId)
+		SELECT IIF( partId IS NOT NULL, partId,
+				IIF( teamId IS NOT NULL, teamId,
+				IIF( groupId IS NOT NULL, groupId,
+				IIF( lineId IS NOT NULL, lineId, sectionId))))
+		FROM @tblcontains
+
+	RETURN
+END
+GO
+/*	how to use:
+	SELECT * FROM employee.ufn_get_dep_struct_max_depth()
+*/
+
+
+--// create procedure auto generate departments of employees information
+
+IF OBJECT_ID('employee.usp_gen_empdep') IS NOT NULL
+DROP PROCEDURE employee.usp_gen_empdep
+GO
+CREATE PROCEDURE employee.usp_gen_empdep
+AS
+BEGIN
+		--// check exists table tblempdep
+		IF EXISTS (SELECT 1 FROM employee.tblempdep)
+		BEGIN
+			TRUNCATE TABLE employee.tblempdep
+		END
+
+		DECLARE @tbl_struct_dep TABLE( depId CHAR(10), keyid INT IDENTITY(1,1))
+		INSERT @tbl_struct_dep(depId) SELECT depId FROM employee.ufn_get_dep_struct_max_depth()
+	
+		DECLARE @employeeId CHAR(10) = '', @employedDate DATE = getdate()
+		DECLARE curv CURSOR FAST_FORWARD FOR SELECT employeeId, employedDate FROM employee.tblemployee
+		OPEN curv
+		FETCH NEXT FROM curv INTO @employeeId, @employedDate
+		WHILE @@FETCH_STATUS = 0
+		BEGIN
+			DECLARE @rand_number_dep SMALLINT = CEILING(RAND() * (SELECT MAX(keyid) FROM @tbl_struct_dep))
+			DECLARE @depId CHAR(10) = (SELECT depId FROM @tbl_struct_dep WHERE keyid = @rand_number_dep )
+
+			INSERT INTO employee.tblempdep(employeeId, datechange, depid)
+			VALUES(@employeeId, @employedDate, @depId)
+		FETCH NEXT FROM curv INTO @employeeId, @employedDate
+		END
+		CLOSE curv
+		DEALLOCATE curv
+END
+GO
+/*	how to use:
+	EXEC employee.usp_gen_empdep
+	( notice: tblempdep will be truncated first )
 */

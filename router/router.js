@@ -7,7 +7,8 @@ const position = require('../mssqlOperations/position/positionCRUD');
 const positionFunction = require('../mssqlOperations/position/positionFunction');
 const account = require('../mssqlOperations/account/accountCRUD');
 const accountFunction = require('../mssqlOperations/account/accountFunction');
-
+const department = require('../mssqlOperations/department/departmentCRUD');
+const departmentFunction = require('../mssqlOperations/department/departmentFunction');
 
 //------------------------------ employee ----------------------------------//
 
@@ -102,6 +103,57 @@ router.post('/position/delete',(req,res,next) =>{
 router.get('/position/get_max_pos',authToken,(req,res,next) =>{
     const body = req.body;
     positionFunction.get_max_position(body).then(
+        respone => res.json(respone)
+    ).catch(
+        err => next(err)
+    );
+})
+
+
+
+//------------------------------ department ----------------------------------//
+
+/* get departments of employees information */
+router.get('/department/get',(req,res,next) =>{
+    const body = req.body;
+    departmentFunction.get_department_employee(body).then(
+        respone => res.json(respone)
+    ).catch(
+        err => next(err)
+    );
+});
+
+/* create departments of employees information */
+router.post('/department/insert',(req,res,next) =>{
+    department.insert_department_employee(req).then(
+        respone => res.json(respone)
+    ).catch(
+        err => next(err)
+    );
+});
+
+/* update departments of employees information */
+router.post('/department/update',(req,res,next) =>{
+    department.update_department_employee(req).then(
+        respone => res.json(respone)
+    ).catch(
+        err => next(err)
+    );
+});
+
+/* delete departments of employees information */
+router.post('/department/delete',(req,res,next) =>{
+    department.delete_department_employee(req).then(
+        respone => res.json(respone)
+    ).catch(
+        err => next(err)
+    );
+})
+
+/* get the total number of employees */
+router.get('/employee/get_total_emp',authToken,(req,res,next) =>{
+    const todate = req.body.todate;
+    employeeFunction.get_total_employee(todate).then(
         respone => res.json(respone)
     ).catch(
         err => next(err)
