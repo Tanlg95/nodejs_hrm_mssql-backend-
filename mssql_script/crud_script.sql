@@ -198,6 +198,106 @@ BEGIN
 END
 GO
 
+--------------------------- department ----------------------------------------
+
+
+-- get departments of employees
+
+IF OBJECT_ID('employee.ufn_get_department') IS NOT NULL
+DROP FUNCTION employee.ufn_get_department
+GO
+CREATE FUNCTION employee.ufn_get_department(@todate DATE, @empid CHAR(10))
+RETURNS @tblempdep TABLE(
+	employeeId CHAR(10),
+	datechange DATE,
+	sectionId CHAR(10),
+	lineId CHAR(10),
+	groupId CHAR(10),
+	teamId CHAR(10),
+	partId CHAR(10),
+	note NVARCHAR(150)
+)
+AS
+BEGIN
+	INSERT @tblempdep (employeeId, datechange, sectionId, lineId, groupId, teamId, partId, note)
+	SELECT D.employeeId, D.datechange, ref_dep.sectionId, ref_dep.lineId, ref_dep.groupId, ref_dep.teamId, ref_dep.partId, D.note
+	FROM employee.tblempdep D
+	INNER JOIN (
+		SELECT employeeId, MAX(datechange) max_date
+		FROM employee.tblempdep 
+		WHERE datechange < IIF( @todate IS NULL, GETDATE(), DATEADD(DAY,1,@todate))
+		AND employeeId LIKE IIF( @empid IS NULL, '%', CONCAT('%',@empid,'%'))
+		GROUP BY employeeId
+	)sub ON D.employeeId = sub.employeeId AND D.datechange = sub.max_date
+	OUTER APPLY employee.ufn_get_dep_struct(D.depId) ref_dep
+	RETURN
+END
+GO
+
+/*	how to use:
+	DECLARE @todate DATE = GETDATE(), @employeeId CHAR(10) = 'SIV00006';
+	SELECT * FROM employee.ufn_get_department(@todate, @employeeId)
+*/
+
+--// create departments of employees
+
+IF OBJECT_ID('employee.usp_insert_department') IS NOT NULL
+DROP PROCEDURE employee.usp_insert_department
+GO
+CREATE PROCEDURE employee.usp_insert_department (
+	@tblempdep employee.utype_tblempdep READONLY
+)
+AS
+BEGIN
+	
+	INSERT employee.tblempdep (employeeId, datechange, depId, note)
+	SELECT employeeId, datechange , depId, note 
+	FROM @tblempdep D
+	WHERE D.depId IN (
+		SELECT depId FROM employee.ufn_get_dep_struct_max_depth()
+	)
+
+END
+GO
+
+--// udpate departments of employees
+
+IF OBJECT_ID('employee.usp_update_department') IS NOT NULL
+DROP PROCEDURE employee.usp_update_department
+GO
+CREATE PROCEDURE employee.usp_update_department (
+	@tblempdep employee.utype_tblempdep_update READONLY
+)
+AS
+BEGIN
+	
+	UPDATE D
+	SET datechange = ISNULL(D1.datechange, D.datechange),
+		depId = ISNULL(D1.depId, D.depId),
+		note = D1.note
+	FROM employee.tblempdep D
+	INNER JOIN @tblempdep D1 ON D.keyid = D1.keyid
+
+END
+GO
+
+--// ddelete departments of employees
+
+IF OBJECT_ID('employee.usp_delete_department') IS NOT NULL
+DROP PROCEDURE employee.usp_delete_department
+GO
+CREATE PROCEDURE employee.usp_delete_department (
+	@tblempdep employee.utype_delete_multi_rows READONLY
+)
+AS
+BEGIN
+	
+	DELETE D FROM employee.tblempdep D
+	INNER JOIN @tblempdep D1 ON D.keyid = D1.keyid
+
+END
+GO
+
 
 --------------------------- account ----------------------------------------
 -- store insert employee's account
